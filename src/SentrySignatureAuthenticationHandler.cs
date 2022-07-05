@@ -34,12 +34,22 @@ public class SentrySignatureAuthenticationHandler : AuthenticationHandler<Authen
     private async Task<bool> ValidateSignatureAsync(StringValues sentrySignature)
     {
         using var hmac = new HMACSHA256(ClientSecret);
-        using var stream = new StreamReader(Request.Body);
 
-        var jsonBody = await stream.ReadToEndAsync();
+        var jsonBody = await ReadRequestBody();
         var signature = hmac.ComputeHash(Encoding.UTF8.GetBytes(jsonBody))
                             .Aggregate(new StringBuilder(), (builder, @byte) => builder.Append(@byte.ToString("x2"))).ToString();
 
         return signature.Equals(sentrySignature);
+    }
+
+    private async Task<string> ReadRequestBody()
+    {
+        Request.EnableBuffering();
+
+        using var reader = new StreamReader(Request.Body, encoding: Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
+        var requestBody = await reader.ReadToEndAsync();
+        Request.Body.Position = 0;
+
+        return requestBody;
     }
 }
