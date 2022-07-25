@@ -17,10 +17,12 @@ public class DiscordMessage
     public DiscordMessage Create(SentryRequest request)
     {
         var embed = new LocalEmbed()
-            .WithAuthor("Sentinel", url: request.Data.Event.issue_url)
-            .WithTitle(request.Data.Event.metadata.title.Truncate(256))
+            .WithAuthor("Sentinel", url: request.Data.Event.web_url)
+            .WithTitle((request.Data.Event.title == "" ? request.Data.Event.metadata.title : request.Data.Event.title).Truncate(256))
             .WithUrl(request.Data.Event.web_url)
-            .WithDescription($"```{request.Data.Event.logentry.formatted.Truncate(4096)}```")
+            .WithDescription(request.Data.Event.exception == null 
+                ? $"```{request.Data.Event.logentry.formatted.Truncate(4090)}```" 
+                : $"```{string.Join(Environment.NewLine, request.Data.Event.exception.values.Select(ex => $"{ex.type}: {ex.value}")).Truncate(4090)}```")
             .WithFooter($"Event ID: {request.Data.Event.event_id}")
             .WithTimestamp(request.Data.Event.datetime)
             .WithColor(request.Data.Event.level.ToColor());
@@ -34,7 +36,6 @@ public class DiscordMessage
         if (request.Data.Event.tags != null) embed.AddField("Tags", string.Join(Environment.NewLine, request.Data.Event.tags.Select(tag => $"**{tag[0]}:** {tag[1]}")).Truncate(1204));
         if (request.Data.Event.extras != null) embed.AddField("Extras", string.Join(Environment.NewLine, request.Data.Event.extras.Select(extra => $"**{extra.Key}:** {extra.Value}")).Truncate(1024));
         if (request.Data.Event.errors != null) embed.AddField("Errors", string.Join(Environment.NewLine, request.Data.Event.errors.Select(err => $"{err.name} {err.type} {err.reason}")).Truncate(1024));
-        if (request.Data.Event.exception != null) embed.AddField("Exceptions", string.Join(Environment.NewLine, request.Data.Event.exception.values.Select(ex => $"{ex.type}: {ex.value}")).Truncate(1024));
 
         _message.AddEmbed(embed);
 
